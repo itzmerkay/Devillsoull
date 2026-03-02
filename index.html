@@ -1,72 +1,38 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chat Pro (Saved)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
-</head>
-<body class="bg-gray-100 h-screen flex flex-col">
-    <div class="flex-1 flex flex-col h-full overflow-hidden">
-        <header class="p-4 bg-white border-b shadow-sm font-bold text-lg flex justify-between">
-            <span>AI Chat</span>
-            <span class="text-xs text-gray-400">Key Saved!</span>
-        </header>
+async function sendMessage() {
+    const input = document.getElementById('user-input').value;
+    const key = document.getElementById('api-key').value;
+    const chatBox = document.getElementById('chat-box');
+    
+    if(!key || !input) return alert("API Key aur Message dono daalo!");
+
+    localStorage.setItem('ai_api_key', key);
+    chatBox.innerHTML += `<div class="bg-blue-100 p-2 rounded self-end ml-auto max-w-[80%]">${input}</div>`;
+    document.getElementById('user-input').value = '';
+    
+    try {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: "deepseek/deepseek-r1:free",
+                messages: [{role: "user", content: input}]
+            })
+        });
+
+        const data = await res.json();
         
-        <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4">
-            </div>
-
-        <div class="p-4 bg-white border-t">
-            <div class="flex flex-col gap-2">
-                <input id="api-key" type="password" placeholder="OpenRouter API Key" class="border p-2 rounded text-sm">
-                <div class="flex gap-2">
-                    <input id="user-input" type="text" placeholder="Type message..." class="border p-2 rounded flex-1">
-                    <button onclick="sendMessage()" class="bg-blue-600 text-white px-4 py-2 rounded">Send</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Load key from storage on startup
-        window.onload = () => {
-            const savedKey = localStorage.getItem('ai_api_key');
-            if (savedKey) document.getElementById('api-key').value = savedKey;
-        };
-
-        async function sendMessage() {
-            const input = document.getElementById('user-input').value;
-            const key = document.getElementById('api-key').value;
-            const chatBox = document.getElementById('chat-box');
-            
-            if(!key || !input) return alert("API Key aur Message dono daalo!");
-
-            // Save key to browser for next time
-            localStorage.setItem('ai_api_key', key);
-
-            chatBox.innerHTML += `<div class="bg-blue-100 p-2 rounded self-end ml-auto max-w-[80%]">${input}</div>`;
-            document.getElementById('user-input').value = '';
-            
-            try {
-                const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model: "deepseek/deepseek-r1:free",
-                        messages: [{role: "user", content: input}]
-                    })
-                });
-
-                const data = await res.json();
-                const reply = data.choices[0].message.content;
-                chatBox.innerHTML += `<div class="bg-white p-2 rounded shadow max-w-[90%]">${marked.parse(reply)}</div>`;
-                chatBox.scrollTop = chatBox.scrollHeight;
-            } catch(e) {
-                alert("Error: " + e.message);
-            }
+        // Yahan hum check karenge ki data sahi hai ya nahi
+        if (data && data.choices && data.choices.length > 0) {
+            const reply = data.choices[0].message.content;
+            chatBox.innerHTML += `<div class="bg-white p-2 rounded shadow max-w-[90%]">${marked.parse(reply)}</div>`;
+        } else {
+            // Agar API ne Error bheja hai, toh wo yahan dikhega
+            console.error("API Response Error:", data);
+            chatBox.innerHTML += `<div class="bg-red-100 p-2 rounded text-red-600">Error: ${JSON.stringify(data)}</div>`;
         }
-    </script>
-</body>
-</html>
+        
+        chatBox.scrollTop = chatBox.scrollHeight;
+    } catch(e) {
+        alert("Network Error: " + e.message);
+    }
+}
