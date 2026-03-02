@@ -1,44 +1,50 @@
-<script>
-async function sendMessage() {
-    const input = document.getElementById('user-input').value;
-    const key = document.getElementById('api-key').value;
-    const chatBox = document.getElementById('chat-box');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body class="bg-gray-100 p-4">
     
-    if (!key || !input) return alert("API Key aur Message dono daalo!");
+    <div class="max-w-md mx-auto bg-white p-4 rounded shadow">
+        <div id="chat-box" class="h-64 overflow-y-auto mb-4 border p-2"></div>
+        <input id="api-key" type="password" placeholder="API Key" class="w-full border p-2 mb-2">
+        <input id="user-input" type="text" placeholder="Message..." class="w-full border p-2 mb-2">
+        <button onclick="sendMessage()" class="w-full bg-blue-600 text-white p-2 rounded">Send</button>
+    </div>
 
-    localStorage.setItem('ai_api_key', key);
-    
-    // User message add karna
-    chatBox.innerHTML += `<div class="bg-blue-100 p-2 rounded self-end ml-auto max-w-[80%]">${input}</div>`;
-    document.getElementById('user-input').value = '';
-    
-    try {
-        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: { 
-                'Authorization': `Bearer ${key}`, 
-                'Content-Type': 'application/json' 
-            },
-            body: JSON.stringify({
-                model: "deepseek/deepseek-r1:free",
-                messages: [{role: "user", content: input}]
-            })
-        });
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById('user-input').value;
+            const key = document.getElementById('api-key').value;
+            const chatBox = document.getElementById('chat-box');
 
-        const data = await res.json();
-        
-        // Response check
-        if (data && data.choices && data.choices.length > 0) {
-            const reply = data.choices[0].message.content;
-            chatBox.innerHTML += `<div class="bg-white p-2 rounded shadow max-w-[90%]">${marked.parse(reply)}</div>`;
-        } else {
-            console.error("API Response Error:", data);
-            chatBox.innerHTML += `<div class="bg-red-100 p-2 rounded text-red-600">Error: ${JSON.stringify(data)}</div>`;
+            if (!key || !input) return alert("Key aur Input bharein!");
+
+            localStorage.setItem('ai_api_key', key);
+            chatBox.innerHTML += `<div class="text-right p-1">${input}</div>`;
+            document.getElementById('user-input').value = '';
+
+            try {
+                const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: "deepseek/deepseek-r1:free",
+                        messages: [{ role: "user", content: input }]
+                    })
+                });
+
+                const data = await res.json();
+                const reply = data.choices[0].message.content;
+                chatBox.innerHTML += `<div class="bg-gray-100 p-1 mt-2">${marked.parse(reply)}</div>`;
+            } catch(e) {
+                alert("Error: " + e.message);
+            }
         }
-        
-        chatBox.scrollTop = chatBox.scrollHeight;
-    } catch(e) {
-        alert("Network Error: " + e.message);
-    }
-}
-</script>
+    </script>
+</body>
+</html>
