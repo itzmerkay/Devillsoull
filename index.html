@@ -3,50 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chat Pro</title>
+    <title>AI Chat Pro (Saved)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 </head>
 <body class="bg-gray-100 h-screen flex flex-col">
-    <div id="app" class="flex-1 flex flex-col h-full overflow-hidden">
-        <header class="p-4 bg-white border-b shadow-sm font-bold text-lg">AI Chat</header>
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+        <header class="p-4 bg-white border-b shadow-sm font-bold text-lg flex justify-between">
+            <span>AI Chat</span>
+            <span class="text-xs text-gray-400">Key Saved!</span>
+        </header>
         
         <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4">
             </div>
 
         <div class="p-4 bg-white border-t">
-            <div class="flex gap-2">
-                <input id="api-key" type="password" placeholder="OpenRouter API Key" class="border p-2 rounded w-1/3">
-                <input id="user-input" type="text" placeholder="Type message..." class="border p-2 rounded flex-1">
-                <button onclick="sendMessage()" class="bg-blue-600 text-white px-4 py-2 rounded">Send</button>
+            <div class="flex flex-col gap-2">
+                <input id="api-key" type="password" placeholder="OpenRouter API Key" class="border p-2 rounded text-sm">
+                <div class="flex gap-2">
+                    <input id="user-input" type="text" placeholder="Type message..." class="border p-2 rounded flex-1">
+                    <button onclick="sendMessage()" class="bg-blue-600 text-white px-4 py-2 rounded">Send</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Load key from storage on startup
+        window.onload = () => {
+            const savedKey = localStorage.getItem('ai_api_key');
+            if (savedKey) document.getElementById('api-key').value = savedKey;
+        };
+
         async function sendMessage() {
             const input = document.getElementById('user-input').value;
             const key = document.getElementById('api-key').value;
             const chatBox = document.getElementById('chat-box');
             
-            if(!key || !input) return alert("Key aur Input dono chahiye!");
+            if(!key || !input) return alert("API Key aur Message dono daalo!");
 
-            chatBox.innerHTML += `<div class="bg-gray-200 p-2 rounded self-end">${input}</div>`;
-            
-            const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: "deepseek/deepseek-r1:free",
-                    messages: [{role: "user", content: input}]
-                })
-            });
+            // Save key to browser for next time
+            localStorage.setItem('ai_api_key', key);
 
-            const data = await res.json();
-            const reply = data.choices[0].message.content;
+            chatBox.innerHTML += `<div class="bg-blue-100 p-2 rounded self-end ml-auto max-w-[80%]">${input}</div>`;
+            document.getElementById('user-input').value = '';
             
-            chatBox.innerHTML += `<div class="bg-white p-2 rounded shadow">${marked.parse(reply)}</div>`;
+            try {
+                const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: "deepseek/deepseek-r1:free",
+                        messages: [{role: "user", content: input}]
+                    })
+                });
+
+                const data = await res.json();
+                const reply = data.choices[0].message.content;
+                chatBox.innerHTML += `<div class="bg-white p-2 rounded shadow max-w-[90%]">${marked.parse(reply)}</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch(e) {
+                alert("Error: " + e.message);
+            }
         }
     </script>
 </body>
