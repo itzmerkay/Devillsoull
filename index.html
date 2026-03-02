@@ -3,46 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chat</title>
+    <title>AI Chat Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
-<body class="bg-gray-100 p-4">
-    
-    <div class="max-w-md mx-auto bg-white p-4 rounded shadow">
-        <div id="chat-box" class="h-64 overflow-y-auto mb-4 border p-2"></div>
-        <input id="api-key" type="password" placeholder="API Key" class="w-full border p-2 mb-2">
-        <input id="user-input" type="text" placeholder="Message..." class="w-full border p-2 mb-2">
-        <button onclick="sendMessage()" class="w-full bg-blue-600 text-white p-2 rounded">Send</button>
-    </div>
+<body class="p-4">
+    <div id="chat-box" class="border p-2 mb-4 h-64 overflow-y-auto"></div>
+    <input id="api-key" type="password" placeholder="API Key" class="border p-2 w-full mb-2">
+    <input id="user-input" type="text" placeholder="Message..." class="border p-2 w-full mb-2">
+    <button onclick="sendMessage()" class="bg-blue-600 text-white p-2 w-full">Send</button>
 
     <script>
         async function sendMessage() {
             const input = document.getElementById('user-input').value;
             const key = document.getElementById('api-key').value;
             const chatBox = document.getElementById('chat-box');
-
-            if (!key || !input) return alert("Key aur Input bharein!");
-
-            localStorage.setItem('ai_api_key', key);
-            chatBox.innerHTML += `<div class="text-right p-1">${input}</div>`;
-            document.getElementById('user-input').value = '';
-
+            
+            chatBox.innerHTML += `<div class="text-right">You: ${input}</div>`;
+            
             try {
                 const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         model: "deepseek/deepseek-r1:free",
-                        messages: [{ role: "user", content: input }]
+                        messages: [{role: "user", content: input}]
                     })
                 });
 
                 const data = await res.json();
-                const reply = data.choices[0].message.content;
-                chatBox.innerHTML += `<div class="bg-gray-100 p-1 mt-2">${marked.parse(reply)}</div>`;
+                
+                // DEBUG: Agar error hai toh pura data screen par dikha do
+                if (data.choices && data.choices[0]) {
+                    chatBox.innerHTML += `<div>AI: ${data.choices[0].message.content}</div>`;
+                } else {
+                    // Yahan aapko asli error dikhega
+                    chatBox.innerHTML += `<div class="text-red-500">Error Details: ${JSON.stringify(data)}</div>`;
+                }
             } catch(e) {
-                alert("Error: " + e.message);
+                chatBox.innerHTML += `<div class="text-red-500">Fetch Error: ${e.message}</div>`;
             }
         }
     </script>
