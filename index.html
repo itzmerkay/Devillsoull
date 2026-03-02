@@ -3,44 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chat Fix</title>
+    <title>AI Chat Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
-<body class="p-4">
-    <div id="chat-box" class="border p-2 mb-4 h-64 overflow-y-auto"></div>
-    <input id="api-key" type="password" placeholder="API Key" class="border p-2 w-full mb-2">
-    <input id="user-input" type="text" placeholder="Message..." class="border p-2 w-full mb-2">
-    <button onclick="sendMessage()" class="bg-blue-600 text-white p-2 w-full">Send</button>
+<body class="bg-gray-100 min-h-screen p-4">
+
+    <div class="max-w-xl mx-auto bg-white p-6 rounded-xl shadow-lg">
+        <h1 class="text-xl font-bold mb-4 text-center">AI Chat Pro</h1>
+        
+        <div id="chat-box" class="h-80 overflow-y-auto border border-gray-200 p-4 rounded bg-gray-50 mb-4 space-y-2">
+            <div class="text-gray-400 text-sm italic">Chat start karo...</div>
+        </div>
+
+        <div class="space-y-2">
+            <input id="api-key" type="password" placeholder="OpenRouter API Key" class="w-full border p-2 rounded">
+            <div class="flex gap-2">
+                <input id="user-input" type="text" placeholder="Message..." class="flex-1 border p-2 rounded">
+                <button onclick="sendMessage()" class="bg-blue-600 text-white px-6 py-2 rounded font-semibold hover:bg-blue-700">Send</button>
+            </div>
+        </div>
+    </div>
 
     <script>
+        // Page load hote hi saved key load karein
+        window.onload = () => {
+            const savedKey = localStorage.getItem('ai_api_key');
+            if (savedKey) document.getElementById('api-key').value = savedKey;
+        };
+
         async function sendMessage() {
-            const input = document.getElementById('user-input').value;
-            const key = document.getElementById('api-key').value;
+            const inputField = document.getElementById('user-input');
+            const keyField = document.getElementById('api-key');
             const chatBox = document.getElementById('chat-box');
             
-            chatBox.innerHTML += `<div class="text-right">You: ${input}</div>`;
+            // Trim() key aur input se extra spaces hatane ke liye
+            const key = keyField.value.trim();
+            const input = inputField.value.trim();
             
+            if (!key || !input) return alert("API Key aur Message dono daalo!");
+
+            localStorage.setItem('ai_api_key', key);
+            
+            chatBox.innerHTML += `<div class="text-right text-blue-700 font-medium">You: ${input}</div>`;
+            inputField.value = '';
+
             try {
                 const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Authorization': `Bearer ${key}`, 
+                        'Content-Type': 'application/json' 
+                    },
                     body: JSON.stringify({
-                        model: "deepseek/deepseek-r1:free",
+                        model: "openai/gpt-4o-mini",
                         messages: [{role: "user", content: input}]
                     })
                 });
 
                 const data = await res.json();
                 
-                // DEBUG: Agar error hai toh pura data screen par dikha do
-                if (data.choices && data.choices[0]) {
-                    chatBox.innerHTML += `<div>AI: ${data.choices[0].message.content}</div>`;
-                } else {
-                    // Yahan aapko asli error dikhega
-                    chatBox.innerHTML += `<div class="text-red-500">Error Details: ${JSON.stringify(data)}</div>`;
+                if (data.error) {
+                    chatBox.innerHTML += `<div class="text-red-600 font-bold">Error: ${data.error.message}</div>`;
+                } else if (data.choices && data.choices[0]) {
+                    const reply = data.choices[0].message.content;
+                    chatBox.innerHTML += `<div><strong>AI:</strong> ${marked.parse(reply)}</div>`;
                 }
+                
+                chatBox.scrollTop = chatBox.scrollHeight;
             } catch(e) {
-                chatBox.innerHTML += `<div class="text-red-500">Fetch Error: ${e.message}</div>`;
+                chatBox.innerHTML += `<div class="text-red-600">Network Error: ${e.message}</div>`;
             }
         }
     </script>
